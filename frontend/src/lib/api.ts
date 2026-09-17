@@ -1,6 +1,15 @@
 import { getCurrentIdToken } from "./firebase";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+function resolveApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  const trimmed = envUrl.trim().replace(/\/+$/, "");
+  if (!trimmed.endsWith("/api/v1")) {
+    return `${trimmed}/api/v1`;
+  }
+  return trimmed;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 interface RequestOptions extends RequestInit {
   data?: any;

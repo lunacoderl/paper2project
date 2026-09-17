@@ -146,15 +146,44 @@ python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ---
 
-## 🌐 Deploying to Vercel
+## 🌐 Deployment Guides
 
-The repository includes pre-configured `vercel.json` files for seamless one-click deployments:
+### 1. Deploying Frontend to Vercel
 
-1. Push this repository to GitHub.
-2. Go to [Vercel](https://vercel.com/) and click **Add New Project**.
-3. Import your `paper2project` repository.
-4. Set the Root Directory to `./frontend` (or leave default if deploying monorepo).
-5. Click **Deploy**!
+The repository is configured for direct Next.js monorepo deployment on Vercel:
+
+1. Go to [Vercel](https://vercel.com/) and click **Add New Project**.
+2. Import your **`paper2project`** repository.
+3. In **Project Settings**:
+   - **Root Directory**: Select `frontend`
+   - **Framework Preset**: `Next.js`
+4. Click **Deploy**!
+
+> [!NOTE]
+> The root `package.json` and `frontend/vercel.json` ensure that whether imported from root or from `./frontend`, Vercel builds the Next.js app with `next build` without path errors.
+
+---
+
+### 2. Deploying Backend to Render
+
+The repository includes a ready-to-deploy `render.yaml` Blueprint and pinned `.python-version` (Python 3.11.9) with pre-compiled wheels for all dependencies:
+
+#### Option A: Automatic Blueprint Deploy
+1. In the [Render Dashboard](https://dashboard.render.com/), click **New +** -> **Blueprint**.
+2. Connect your `paper2project` GitHub repository.
+3. Render will detect `render.yaml` and set up the Web Service automatically.
+
+#### Option B: Manual Web Service Setup
+1. In Render, click **New +** -> **Web Service**.
+2. Connect `paper2project` repo.
+3. Configure the following fields:
+   - **Root Directory**: `backend`
+   - **Runtime**: `Python`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. In **Environment Variables**, add:
+   - `PYTHON_VERSION`: `3.11.9`
+5. Click **Create Web Service**.
 
 ---
 

@@ -27,16 +27,33 @@ Turning an academic research paper or a technical idea into working software is 
 
 ### 1. 📄 Universal Input Processing
 - Upload **PDFs, DOCX, TXT**, or type any raw text prompt / idea abstract.
-- Client-side NLP extracts core technical entities, domains, problem statements, solutions, features, and technology stacks.
+- Client-side and server-side NLP extracts core technical entities, domains, problem statements, solutions, features, and technology stacks.
 
-### 2. 🔍 "Is It Already Implemented?" (Literature Overlap Matrix)
-- Queries **200M+ academic papers** via the Semantic Scholar API and arXiv.
-- Provides an **Overall Literature Overlap Score (%)** vs. **Novelty Score (%)**.
-- **Feature-by-Feature Matrix**: Breaks down every proposed feature into:
-  - 🔴 **Fully Implemented in Prior Work**
-  - 🟡 **Partially Explored**
-  - 🟢 **Novel / Greenfield Territory**
-- Direct comparison: *"How Existing Research Solves It"* vs. *"Your Novel Advantage"*.
+### 2. 🔬 Anchor-Bootstrapped Hybrid CF/CBF & Novelty Predictor Model
+Grounded on:
+> **Base Paper**: *"A Hybrid Personalized Scientific Paper Recommendation Approach Integrating Public Contextual Metadata"* (Sakib et al., *IEEE Access*, 2021)
+
+- **Step 0 — Anchor Bootstrap (Cold-Start Solution)**:
+  - Since an unpublished student idea has no existing citations, semantic search across scholarly APIs (Semantic Scholar, OpenAlex, arXiv) identifies the closest real published paper as the **"Anchor Paper"**.
+- **CF Branch (Algorithm 1, Steps 1-3)**:
+  - Extracts 2-level citation relations: papers citing the anchor ($1^{\text{st}}$ level) and papers the anchor references ($2^{\text{nd}}$ level).
+  - Builds co-citation and bibliographic coupling matrices.
+  - Computes Jaccard citation similarity $\to$ $\text{CF\_score}$.
+- **CBF Branch (Content-Based Filtering)**:
+  - Computes cosine similarity between `idea_vector` (via `bge-small-en-v1.5`) and candidate paper embeddings $\to$ $\text{CBF\_score}$.
+- **Hybrid Scoring Layer**:
+  $$\text{hybrid\_score} = \frac{\text{CBF\_score} + \text{CF\_score}}{2} \quad \text{(with CBF fallback if no anchor)}$$
+- **Model 3: Novelty Scoring & Gap Detection**:
+  - **Calibrated Novelty Score (%)** vs. **Literature Overlap Score (%)**.
+  - **Multi-Dimensional Breakdown**:
+    - 🎯 **Problem Novelty**: Rarity of the target problem formulation.
+    - ⚙️ **Methodological Novelty**: Innovation in algorithms and architectures.
+    - 🚀 **Implementation Novelty**: Zero-cost, edge latency, and practical differentiation.
+  - **Feature-by-Feature Matrix**:
+    - 🔴 **Fully Implemented in Prior Work**
+    - 🟡 **Partially Explored**
+    - 🟢 **Novel / Greenfield Territory**
+  - Direct comparison: *"How Existing Research Solves It"* vs. *"Your Novel Advantage"*.
 
 ### 3. 💡 Competitive Advantage & Innovation Blueprint
 - Strategic recommendations explaining **"Why This Beats Published Papers"**.
@@ -67,6 +84,79 @@ Turning an academic research paper or a technical idea into working software is 
 
 ---
 
+## 🔬 Scientific Architecture & Pipeline (Sakib et al. 2021)
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ INPUT: Student's Idea (raw text / uploaded doc)          │
+└───────────────────────────┬────────────────────────────┘
+                             ▼
+                ┌────────────────────────┐
+                │ MODEL 1: EXTRACTION    │
+                │ (LLM / NLP-based)      │
+                │ → title, abstract,     │
+                │   keywords, methods    │
+                └───────────┬────────────┘
+                            ▼
+         ┌──────────────────────────────────────┐
+         │ EMBEDDING LAYER                       │
+         │ bge-small-en-v1.5 / SBERT             │
+         │ → idea_vector                        │
+         └──────────────────┬─────────────────────┘
+                            ▼
+         ┌──────────────────────────────────────┐
+         │ STEP 0 — ANCHOR BOOTSTRAP (NEW)       │
+         │ Semantic search across retrieval APIs │
+         │ (Semantic Scholar / OpenAlex / arXiv)  │
+         │ → find closest REAL paper = "anchor"  │
+         └───────────┬────────────────┬──────────┘
+                     │                │
+        anchor found │                │ no strong anchor
+        (has citations)│               │ (CF skipped)
+                     ▼                ▼
+   ┌─────────────────────────┐   ┌─────────────────────────┐
+   │ CF BRANCH (citation)    │   │ CBF-ONLY FALLBACK       │
+   │                         │   │ (semantic similarity    │
+   │ Algorithm 1, Steps 1-3: │   │  across candidates only)│
+   │ • Papers citing anchor  │   └────────────┬────────────┘
+   │ • Papers anchor cites   │                │
+   │ • Co-occurrence matrix  │                │
+   │ • Jaccard similarity    │                │
+   │   → CF_score            │                │
+   └───────────┬─────────────┘                │
+               │                              │
+               ▼                              │
+   ┌─────────────────────────┐                │
+   │ CBF BRANCH (content)    │                │
+   │                         │                │
+   │ idea_vector vs each     │                │
+   │ candidate's embedding   │                │
+   │ → cosine similarity     │                │
+   │ → CBF_score             │                │
+   └───────────┬─────────────┘                │
+               │                              │
+               ▼                              ▼
+      ┌─────────────────────────────────────────┐
+      │ HYBRID SCORING LAYER                     │
+      │ IF anchor found:                         │
+      │   hybrid_score = (CBF_score+CF_score)/2  │
+      │ ELSE:                                    │
+      │   hybrid_score = CBF_score                │
+      └───────────────────┬──────────────────────┘
+                          ▼
+      ┌─────────────────────────────────────────┐
+      │ RESULTS NORMALIZATION & RANKING          │
+      │ → Top-N candidate papers, ranked          │
+      └───────────────────┬──────────────────────┘
+                          ▼
+              Feeds → Comparison Engine
+              → Novelty Scoring (Model 3)
+              → Gap Detection / Recommendations
+              → Roadmap (Model 2)
+```
+
+---
+
 ## 🏗️ Repository Architecture
 
 ```
@@ -75,13 +165,38 @@ paper2project/
 │   ├── src/
 │   │   ├── app/                  # App Router pages (Dashboard, Discover, Improve, Roadmap, etc.)
 │   │   ├── components/           # Navbar, Sidebar, AuthProvider
-│   │   └── lib/                  # Text analyzer, Demo engine, Semantic Scholar client, Zustand store
+│   │   └── lib/
+│   │       ├── novelty-client.ts # Novelty Predictor API client (with offline fallback)
+│   │       ├── demo-engine.ts    # Client-side heuristic and comparison engine
+│   │       ├── text-analyzer.ts  # NLP and document parsing
+│   │       └── semantic-scholar.ts # Academic Graph client
 │   ├── public/                   # Branding assets & logos
 │   ├── vercel.json               # Frontend Vercel configuration
 │   └── package.json
 ├── backend/                      # FastAPI Python backend
-│   ├── app/                      # API routes, services, providers (arXiv, GitHub, Scholar)
-│   ├── main.py                   # FastAPI application entry point
+│   ├── app/
+│   │   ├── api/v1/
+│   │   │   ├── endpoints/
+│   │   │   │   ├── novelty.py    # POST /novelty/predict, GET /novelty/info
+│   │   │   │   └── discover.py   # Multi-source discovery endpoints
+│   │   │   └── router.py         # v1 API router
+│   │   ├── models/
+│   │   │   └── novelty_predictor.py # Model 3: Novelty Scoring & Gap Engine
+│   │   ├── schemas/
+│   │   │   └── novelty.py        # Pydantic schemas for novelty & hybrid ranking
+│   │   ├── services/
+│   │   │   ├── anchor_service.py     # Step 0: Anchor Bootstrapping
+│   │   │   ├── citation_cf_service.py# Algorithm 1: 2-level citation CF
+│   │   │   ├── hybrid_ranker.py      # Fused (CBF + CF) / 2 ranker
+│   │   │   ├── novelty_service.py    # Pipeline coordinator
+│   │   │   └── embedding_service.py  # bge-small / SentenceTransformers
+│   │   └── providers/            # Semantic Scholar, OpenAlex, arXiv
+│   ├── scripts/
+│   │   └── test_hybrid_recommendation_pipeline.py # End-to-end verification
+│   ├── tests/
+│   │   ├── test_novelty_predictor.py # Algorithmic unit tests
+│   │   └── test_api_endpoints.py     # FastAPI endpoint tests
+│   ├── main.py                   # FastAPI entry point
 │   ├── requirements.txt          # Python dependencies
 │   └── .env.example              # Environment variables template
 ├── docs/                         # Project architecture & system designs
@@ -90,6 +205,7 @@ paper2project/
 ├── .gitignore                    # Global ignore rules
 └── README.md
 ```
+
 
 ---
 

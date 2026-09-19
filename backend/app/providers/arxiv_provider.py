@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ArxivProvider(BaseSearchProvider):
     source_name = "arxiv"
     source_type = "paper"
-    BASE_URL = "http://export.arxiv.org/api/query"
+    BASE_URL = "https://export.arxiv.org/api/query"
 
     async def search(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
         params = {

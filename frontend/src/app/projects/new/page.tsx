@@ -27,6 +27,7 @@ import {
   generateImprovementStrategies,
   generateCustomizedRoadmap,
 } from "@/lib/demo-engine";
+import { predictProjectNovelty } from "@/lib/novelty-client";
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -143,8 +144,8 @@ Technology Stack: C++, Python, OpenCV, ROS2, PyTorch, TensorRT, FastAPI, Next.js
       await new Promise((r) => setTimeout(r, 700));
       setCurrentStep(3);
 
-      // Step 5: Overlap & Competitor Analysis
-      const assessment = analyzeImplementationStatus(analysis, discoveredPapers);
+      // Step 5: Overlap & Competitor Analysis (calls ML novelty model with local fallback)
+      const assessment = await predictProjectNovelty(analysis, discoveredPapers);
 
       await new Promise((r) => setTimeout(r, 600));
       setCurrentStep(4);

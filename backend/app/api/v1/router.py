@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     copilot,
     roadmap,
     architecture,
+    novelty,
 )
 
 api_router = APIRouter()
@@ -23,3 +24,5 @@ api_router.include_router(suggestions.router, prefix="/projects/{project_id}/sug
 api_router.include_router(copilot.router, prefix="/projects/{project_id}/copilot", tags=["Copilot"])
 api_router.include_router(roadmap.router, prefix="/projects/{project_id}/roadmap", tags=["Roadmap"])
 api_router.include_router(architecture.router, prefix="/projects/{project_id}/architecture", tags=["Architecture"])
+api_router.include_router(novelty.router, prefix="/novelty", tags=["Novelty Predictor"])
+

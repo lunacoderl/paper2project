@@ -48,21 +48,60 @@ export async function searchPapers(
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        // Rate limited — wait and retry once
-        await new Promise((r) => setTimeout(r, 3000));
-        const retry = await fetch(`${BASE_URL}/paper/search?${params.toString()}`, {
-          headers: { "Accept": "application/json" },
-        });
-        if (retry.ok) return await retry.json();
-      }
-      console.warn(`Semantic Scholar API error: ${response.status}`);
-      return { total: 0, offset: 0, data: [] };
+      console.warn(`Semantic Scholar API status ${response.status}, falling back to OpenAlex...`);
+      return await searchOpenAlex(query, limit);
     }
 
-    return await response.json();
+    const data = await response.json();
+    if (!data.data || data.data.length === 0) {
+      return await searchOpenAlex(query, limit);
+    }
+    return data;
   } catch (err) {
-    console.warn("Semantic Scholar search failed:", err);
+    console.warn("Semantic Scholar search failed, trying OpenAlex:", err);
+    return await searchOpenAlex(query, limit);
+  }
+}
+
+/**
+ * Fallback to OpenAlex (reliable, 100K free requests/day, no 429 rate limit).
+ */
+export async function searchOpenAlex(query: string, limit: number = 8): Promise<SearchResult> {
+  try {
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=${limit}`;
+    const res = await fetch(url);
+    if (!res.ok) return { total: 0, offset: 0, data: [] };
+    const data = await res.json();
+    const papers: SemanticScholarPaper[] = (data.results || []).map((w: any) => {
+      let abstract = "";
+      if (w.abstract_inverted_index) {
+        const positions: [string, number][] = [];
+        for (const [word, pos] of Object.entries(w.abstract_inverted_index)) {
+          for (const p of (pos as number[])) {
+            positions.push([word, p]);
+          }
+        }
+        positions.sort((a, b) => a[1] - b[1]);
+        abstract = positions.map((p) => p[0]).join(" ");
+      }
+      return {
+        paperId: w.id || `openalex-${Math.random()}`,
+        title: w.title || "Untitled Paper",
+        abstract: abstract || null,
+        year: w.publication_year || null,
+        citationCount: w.cited_by_count || 0,
+        influentialCitationCount: Math.round((w.cited_by_count || 0) * 0.15),
+        url: w.primary_location?.landing_page_url || `https://openalex.org/${w.id}`,
+        venue: w.primary_location?.source?.display_name || "Academic Journal",
+        authors: (w.authorships || []).slice(0, 4).map((a: any) => ({ name: a.author?.display_name || "Researcher" })),
+        fieldsOfStudy: (w.concepts || []).slice(0, 4).map((c: any) => c.display_name),
+        isOpenAccess: Boolean(w.open_access?.is_oa),
+        openAccessPdf: w.open_access?.oa_url ? { url: w.open_access.oa_url } : null,
+      };
+    });
+    return { total: papers.length, offset: 0, data: papers };
+  } catch (err) {
+    console.warn("OpenAlex fallback search failed:", err);
     return { total: 0, offset: 0, data: [] };
   }
 }

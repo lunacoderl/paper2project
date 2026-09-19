@@ -15,8 +15,13 @@ from typing import Optional
 from functools import lru_cache
 from datetime import datetime, timezone
 
-import firebase_admin
-from firebase_admin import credentials, auth as firebase_auth
+try:
+    import firebase_admin
+    from firebase_admin import credentials, auth as firebase_auth
+except ImportError:
+    firebase_admin = None
+    credentials = None
+    firebase_auth = None
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 

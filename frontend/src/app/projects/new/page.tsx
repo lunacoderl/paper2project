@@ -147,6 +147,15 @@ Technology Stack: C++, Python, OpenCV, ROS2, PyTorch, TensorRT, FastAPI, Next.js
       // Step 5: Overlap & Competitor Analysis (calls ML novelty model with local fallback)
       const assessment = await predictProjectNovelty(analysis, discoveredPapers);
 
+      // Populate discoveredPapers with real papers from the backend hybrid model
+      if (
+        (!discoveredPapers || discoveredPapers.length === 0) &&
+        assessment.candidatePapers &&
+        assessment.candidatePapers.length > 0
+      ) {
+        discoveredPapers = assessment.candidatePapers;
+      }
+
       await new Promise((r) => setTimeout(r, 600));
       setCurrentStep(4);
 

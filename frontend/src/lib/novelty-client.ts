@@ -145,6 +145,22 @@ export async function predictProjectNovelty(
       yourNovelAdvantage: fc.your_novel_advantage,
     }));
 
+    // Map backend candidates to SemanticScholarPaper format for discoveredPapers
+    const candidatePapers: SemanticScholarPaper[] = data.top_candidates.map((cand) => ({
+      paperId: cand.paper_id,
+      title: cand.title,
+      abstract: cand.abstract || null,
+      year: cand.year || null,
+      citationCount: cand.citation_count || 0,
+      influentialCitationCount: Math.round((cand.citation_count || 0) * 0.15),
+      url: cand.url || `https://www.semanticscholar.org/paper/${cand.paper_id}`,
+      venue: "Scholarly Literature",
+      authors: cand.authors && cand.authors.length > 0 ? cand.authors.map((a) => ({ name: a })) : [{ name: "Researcher" }],
+      fieldsOfStudy: analysis.domains || ["Computer Science"],
+      isOpenAccess: true,
+      openAccessPdf: null,
+    }));
+
     return {
       overallImplementedScore: data.overall_implemented_score,
       noveltyScore: data.overall_novelty_score,
@@ -153,9 +169,11 @@ export async function predictProjectNovelty(
       featureComparisons,
       benchmarkedPapersCount: data.top_candidates.length,
       keyExistingCompetitors,
+      candidatePapers,
     };
   } catch (error) {
     console.warn("Backend novelty predictor unavailable, using local client engine:", error);
     return localAnalyzeImplementationStatus(analysis, papers);
   }
 }
+

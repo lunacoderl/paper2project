@@ -222,21 +222,37 @@ class NoveltyPredictor:
                         "similarity_reason": f"Directly addresses analogous formulation in {domains[0] if domains else 'literature'}.",
                     })
 
+            # Generate dynamic, domain-aware, and feature-specific comparison text
+            fname_lower = name.lower()
+            top_matching_title = matching_papers[0]["title"] if matching_papers else (top_candidates[0]["title"] if top_candidates else "published literature")
+            domain_name = domains[0] if domains else "machine learning"
+
             if len(matching_papers) >= 3:
                 status = ImplementationStatusEnum.FULLY_IMPLEMENTED
                 overlap_pct = min(92, 72 + (idx % 4) * 5)
-                how_lit = "Commonly implemented in prior literature using standard centralized batch pipelines."
-                your_adv = f"Differentiate by providing lower-latency execution and seamless developer-ready API integration for {name}."
             elif len(matching_papers) >= 1:
                 status = ImplementationStatusEnum.PARTIALLY_IMPLEMENTED
                 overlap_pct = min(65, 42 + (idx % 5) * 5)
-                how_lit = f"Explored conceptually in published work ({matching_papers[0]['title'][:40]}...), but lacks zero-cost production tuning."
-                your_adv = f"Bridge theoretical formulations with practical edge deployment and reproducible modular design for {name}."
             else:
                 status = ImplementationStatusEnum.NOVEL
                 overlap_pct = max(10, 15 + (idx % 3) * 5)
-                how_lit = "No direct academic implementations found in standard scholarly benchmarks."
-                your_adv = f"You can define the reference baseline and standard benchmarks for {name}."
+
+            # Contextualize based on feature semantic type
+            if any(k in fname_lower for k in ["risk", "hazard", "severity", "prognosis", "analyzer"]):
+                how_lit = f"Prior studies in {domain_name} (e.g. '{top_matching_title[:45]}...') predominantly treat risk as a static post-hoc survival curve rather than an interactive predictive engine."
+                your_adv = f"Provides an explainable, multi-factor risk analyzer that dynamically stratifies risk levels alongside predictive confidence intervals."
+            elif any(k in fname_lower for k in ["classif", "predict", "detect", "segment", "model", "neural"]):
+                how_lit = f"Standard academic baselines in {domain_name} (such as '{top_matching_title[:45]}...') focus on heavy offline monolithic architectures evaluated on pre-cleaned benchmarks."
+                your_adv = f"Differentiates {name} by combining multi-class accuracy with lightweight edge inference, robust uncertainty estimation, and patient-specific validation."
+            elif any(k in fname_lower for k in ["platform", "dashboard", "system", "app", "ui", "interface"]):
+                how_lit = f"Existing implementations in literature are typically shared as standalone Python/MATLAB scripts with complex local dependency requirements."
+                your_adv = f"Engineers an accessible, zero-cost web platform with interactive visualization and rapid automated report generation for practitioners."
+            elif any(k in fname_lower for k in ["data", "preprocess", "pipeline", "extract", "feature"]):
+                how_lit = f"Literature benchmarks assume clean, pre-segmented input data with manual annotations, failing under real-world clinical noise."
+                your_adv = f"Implements automated end-to-end normalization, noise filtering, and resilient feature extraction specifically optimized for {domain_name}."
+            else:
+                how_lit = f"Explored from a narrow theoretical angle in '{top_matching_title[:45]}...', lacking end-to-end integration."
+                your_adv = f"Establishes a practical, developer-ready implementation and reproducible benchmarking suite for {name}."
 
             results.append(
                 FeatureNoveltyComparison(
@@ -253,6 +269,7 @@ class NoveltyPredictor:
             )
 
         return results
+
 
     def _detect_gaps_and_recommendations(
         self,

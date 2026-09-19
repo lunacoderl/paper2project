@@ -50,6 +50,7 @@ export interface ProjectImplementationAssessment {
     weaknesses: string[];
     gapYouCanExploit: string;
   }[];
+  candidatePapers?: SemanticScholarPaper[];
 }
 
 export interface StrategicImprovement {

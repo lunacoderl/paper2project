@@ -183,6 +183,14 @@ class NoveltyService:
             except Exception as e:
                 logger.warning(f"arXiv search failed: {e}")
 
+        # 3. Search OpenAlex (reliable, high-throughput, no 429 rate limit)
+        if len(results) < limit:
+            try:
+                openalex_res = await self.openalex_provider.search(query, limit=limit)
+                results.extend(openalex_res)
+            except Exception as e:
+                logger.warning(f"OpenAlex search failed: {e}")
+
         # If anchor paper is not in results, prepend it
         if anchor_paper and anchor_paper.get("status") == "found":
             anchor_id = anchor_paper.get("paper_id")

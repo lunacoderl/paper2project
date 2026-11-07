@@ -74,4 +74,5 @@
 - **Zero-Cost Qwen LLM Strategy**: Formulated 7 free-tier architectures to consume the Qwen 2.5 and Qwen 2.5 Coder family on a $0 Vercel + Render deployment (OpenRouter Free, HF Serverless, SiliconFlow, GitHub Models, Cloudflare Workers AI, and In-Browser WebLLM).
 - **Cloudflare vs. Hugging Face Assessment**: Added side-by-side evaluation comparing cold-start impact against Vercel's 15s execution timeout, catalog versions (Qwen 2.5 vs 1.5), and zero-friction integration.
 - **Zero-Error Production Playbook**: Created comprehensive production guide in `PROJECT_MEMORY/ZERO_ERROR_PRODUCTION_GUIDE.md` detailing Render keep-alive automation, Vercel timeout avoidance, CORS lock, and multi-tier Qwen cascade.
+- **Firebase Auth Migration**: Synced Firebase credentials from `dumpareviews` (`dumpareviews.firebaseapp.com`, project ID `dumpareviews`) into `frontend/src/lib/firebase.ts`, `frontend/.env`, `frontend/.env.example`, `backend/.env`, and `backend/.env.example`, enabling authentication on `https://paper2project.vercel.app/login`.
 

@@ -11,6 +11,7 @@ class InputType(str, Enum):
     RESEARCH_PAPER = "research_paper"
     DOCX = "docx"
     TXT = "txt"
+    IMAGE = "image"
     OTHER = "other"
 
 

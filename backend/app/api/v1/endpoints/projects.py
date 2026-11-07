@@ -18,13 +18,28 @@ from app.database.repositories.project_repository import ProjectRepository
 router = APIRouter()
 
 
+from datetime import datetime, timezone
+from app.core.config import settings
+
 @router.post("", response_model=ProjectInDB, status_code=status.HTTP_201_CREATED)
 async def create_project(
     data: ProjectCreate,
     current_user: UserPublic = Depends(get_current_user),
     repo: ProjectRepository = Depends(ProjectRepository),
 ):
-    """Create a new project for the authenticated user."""
+    """Create a new project for the authenticated user (Rate limited to 1 per 10 minutes)."""
+    latest_projects = await repo.get_user_projects(user_id=current_user.id, limit=1)
+    if latest_projects and latest_projects[0].created_at:
+        last_created = latest_projects[0].created_at
+        now = datetime.now(timezone.utc)
+        elapsed = (now - last_created).total_seconds()
+        if elapsed < settings.PROJECT_CREATION_COOLDOWN_SECONDS:
+            remaining = int(settings.PROJECT_CREATION_COOLDOWN_SECONDS - elapsed)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Rate limit: You can create 1 project every 10 minutes. Please wait {remaining} seconds.",
+            )
+
     return await repo.create(user_id=current_user.id, data=data)
 
 

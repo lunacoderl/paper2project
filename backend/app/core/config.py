@@ -30,22 +30,39 @@ class Settings(BaseSettings):
     # Hugging Face
     HUGGINGFACE_API_KEY: str = ""
     HF_EMBEDDING_MODEL: str = "BAAI/bge-large-en-v1.5"
-    HF_LLM_MODEL: str = "mistralai/Mistral-7B-Instruct-v0.3"
+    HF_LLM_MODEL: str = "Qwen/Qwen2.5-7B-Instruct"
     HF_RERANKER_MODEL: str = "BAAI/bge-reranker-v2-m3"
+
+    # OpenRouter (Free Tier Qwen & Open-Source LLMs)
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "qwen/qwen-2.5-72b-instruct:free"
+    OPENROUTER_FALLBACK_MODELS: List[str] = [
+        "qwen/qwen-2.5-coder-32b-instruct:free",
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemini-2.0-flash-exp:free",
+    ]
+
+    # Novelty ML Model Configuration
+    ML_NOVELTY_MODEL_PATH: str = "models/novelty_model.onnx"
 
     # External APIs
     GITHUB_TOKEN: str = ""
     SEMANTIC_SCHOLAR_API_KEY: str = ""
 
-    # Rate Limiting
+    # Rate Limiting (1 project per 10 minutes = 600s)
     RATE_LIMIT_PER_MINUTE: int = 60
+    PROJECT_CREATION_COOLDOWN_SECONDS: int = 600
 
-    # File Upload
+    # File Upload (PDF, DOCX, TXT, and Document Images)
     MAX_FILE_SIZE_MB: int = 25
     ALLOWED_MIME_TYPES: Union[List[str], str] = [
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "text/plain",
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/webp",
     ]
 
     @field_validator("ALLOWED_ORIGINS", mode="after")

@@ -24,6 +24,8 @@ from app.providers.academic_providers import (
 logger = logging.getLogger(__name__)
 
 
+from app.services.novelty_ranker import NoveltyRankerService
+
 class SearchService:
     def __init__(
         self,
@@ -31,11 +33,13 @@ class SearchService:
         llm: LLMService = Depends(LLMService),
         analysis_svc: ProjectAnalysisService = Depends(ProjectAnalysisService),
         ranking_svc: RankingService = Depends(RankingService),
+        novelty_ranker: NoveltyRankerService = Depends(NoveltyRankerService),
     ):
         self.db = db
         self.llm = llm
         self.analysis_svc = analysis_svc
         self.ranking_svc = ranking_svc
+        self.novelty_ranker = novelty_ranker
 
         # Initialize search providers
         self.providers = [
@@ -110,38 +114,47 @@ class SearchService:
             # 3. Deduplicate
             unique_results = self.ranking_svc.deduplicate(raw_results)
 
-            # 4. Hybrid Ranking & Scoring
-            ranked_results = await self.ranking_svc.calculate_hybrid_scores(context, unique_results)
+            # 4. Dual-Criterion Novelty & Performance Ranking (Pluggable ML + AI Fallback)
+            ranked_results = await self.novelty_ranker.rank_papers(context, unique_results)
 
             # 5. Persist in Supabase
-            # Delete old search results for this session
-            self.db.table("search_results").delete().eq("search_session_id", session_id).execute()
+            try:
+                # Delete old search results for this session
+                self.db.table("search_results").delete().eq("search_session_id", session_id).execute()
 
-            records = []
-            for r in ranked_results:
-                records.append({
-                    "search_session_id": session_id,
-                    "external_id": str(r.get("external_id") or ""),
-                    "source": r.get("source"),
-                    "source_type": r.get("source_type"),
-                    "title": r.get("title"),
-                    "url": r.get("url"),
-                    "raw_description": r.get("description"),
-                    "normalized_content": r.get("description"),
-                    "metadata": {
-                        "stars": r.get("stars"),
-                        "authors": r.get("authors"),
-                        "technologies": r.get("technologies"),
-                        "matched_concepts": r.get("matched_concepts", []),
-                        "matched_features": r.get("matched_features", []),
-                        "matched_technologies": r.get("matched_technologies", []),
-                        "scores": r.get("scores", {}),
-                        "similarity_percentage": r.get("similarity_percentage", 50),
-                    },
-                })
+                records = []
+                for r in ranked_results:
+                    records.append({
+                        "search_session_id": session_id,
+                        "external_id": str(r.get("external_id") or ""),
+                        "source": r.get("source"),
+                        "source_type": r.get("source_type"),
+                        "title": r.get("title"),
+                        "url": r.get("url"),
+                        "raw_description": r.get("description"),
+                        "normalized_content": r.get("description"),
+                        "metadata": {
+                            "rank": r.get("rank"),
+                            "reported_accuracy": r.get("reported_accuracy"),
+                            "accuracy_score": r.get("accuracy_score"),
+                            "datasets_used": r.get("datasets_used", []),
+                            "matched_keywords": r.get("matched_keywords", []),
+                            "stars": r.get("stars"),
+                            "authors": r.get("authors"),
+                            "technologies": r.get("technologies"),
+                            "matched_concepts": r.get("matched_concepts", []),
+                            "matched_features": r.get("matched_features", []),
+                            "matched_technologies": r.get("matched_technologies", []),
+                            "scores": r.get("scores", {}),
+                            "similarity_percentage": r.get("similarity_percentage", 50),
+                            "ranking_engine": r.get("ranking_engine", "ai_dual_criterion"),
+                        },
+                    })
 
-            if records:
-                self.db.table("search_results").insert(records).execute()
+                if records:
+                    self.db.table("search_results").insert(records).execute()
+            except Exception as db_err:
+                logger.warning(f"Could not persist search results in Supabase: {db_err}")
 
             # Update session status
             now = datetime.now(timezone.utc).isoformat()

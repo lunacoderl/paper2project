@@ -3,8 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev": "concurrently -k -n \"FRONTEND,BACKEND\" -c \"cyan.bold,green.bold\" \"npm --prefix frontend run dev\" \"cd backend && python -m uvicorn main:app --reload --port 8000\"",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "cd backend && python -m uvicorn main:app --reload --port 8000",
     "build": "npm --prefix frontend run build",
-    "start": "npm --prefix frontend start",
-    "dev": "npm --prefix frontend run dev"
+    "start": "npm --prefix frontend start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }

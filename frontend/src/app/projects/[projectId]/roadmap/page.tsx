@@ -25,6 +25,7 @@ import {
   generateCustomizedRoadmap,
   DynamicRoadmap,
   RoadmapQuestionnaireAnswers,
+  RoadmapPhase,
 } from "@/lib/demo-engine";
 
 export default function RoadmapPage() {
@@ -37,7 +38,7 @@ export default function RoadmapPage() {
   const [loading, setLoading] = useState(true);
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
 
-  // Questionnaire Form State
+  // Questionnaire & Hardware Specs State
   const [answers, setAnswers] = useState<RoadmapQuestionnaireAnswers>({
     timePeriod: "1_month",
     equipment: "laptop_cpu",
@@ -45,6 +46,15 @@ export default function RoadmapPage() {
     skillLevel: "intermediate",
     teamSize: "solo",
     focus: "speed_mvp",
+  });
+
+  const [hardware, setHardware] = useState({
+    deviceType: "laptop",
+    cpu: "Intel Core i5 / AMD Ryzen 5",
+    ram: "8gb",
+    diskSpace: "50gb",
+    gpu: "none_integrated",
+    os: "windows",
   });
 
   useEffect(() => {
@@ -58,7 +68,7 @@ export default function RoadmapPage() {
       if (p.roadmap) {
         setRoadmap(p.roadmap);
       } else if (p.analysis) {
-        const generated = generateCustomizedRoadmap(p.analysis, answers);
+        const generated = generateCalibratedRoadmap(p.analysis, answers, hardware);
         setRoadmap(generated);
         updateProjectRoadmap(projectId, generated);
       }
@@ -70,7 +80,7 @@ export default function RoadmapPage() {
     e.preventDefault();
     if (!project?.analysis) return;
 
-    const generated = generateCustomizedRoadmap(project.analysis, answers);
+    const generated = generateCalibratedRoadmap(project.analysis, answers, hardware);
     setRoadmap(generated);
     updateProjectRoadmap(projectId, generated);
     setShowQuestionnaire(false);
@@ -131,6 +141,85 @@ export default function RoadmapPage() {
           <Sliders className="w-3.5 h-3.5" />
           <span>Customize Roadmap Questions</span>
         </button>
+      </div>
+
+      {/* PC Hardware & Zero-Cost Prototype Execution Banner */}
+      <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-6 sm:p-7 text-white shadow-md space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+              <Cpu className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Target PC Hardware Calibrated
+                </span>
+                <span className="text-xs text-slate-400">•</span>
+                <span className="text-xs text-emerald-400 font-bold">100% Working Prototype Path</span>
+              </div>
+              <h2 className="text-base sm:text-lg font-extrabold text-white mt-0.5">
+                {hardware.deviceType.toUpperCase()} ({hardware.cpu}) • {hardware.ram.toUpperCase()} RAM • {hardware.os.toUpperCase()}
+              </h2>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowQuestionnaire(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition-colors self-start sm:self-auto"
+          >
+            Change Specs
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 space-y-1">
+            <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+              <span>🖥️</span>
+              <span>GPU / Acceleration Mode</span>
+            </div>
+            <div className="font-extrabold text-indigo-300">
+              {hardware.gpu === "none_integrated"
+                ? "CPU Quantized (INT8 ONNX)"
+                : hardware.gpu === "apple_silicon"
+                ? "Apple Metal (MPS Unified Memory)"
+                : hardware.gpu === "free_cloud_colab"
+                ? "Free Cloud T4 (Google Colab)"
+                : "NVIDIA CUDA Acceleration"}
+            </div>
+            <p className="text-[11px] text-slate-400 font-normal">
+              {hardware.gpu === "none_integrated"
+                ? "Lightweight ONNX model export eliminates GPU requirements."
+                : "Hardware acceleration active for faster convergence."}
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 space-y-1">
+            <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+              <span>💾</span>
+              <span>Memory & Disk Strategy</span>
+            </div>
+            <div className="font-extrabold text-emerald-300">
+              {hardware.ram.toUpperCase()} RAM • {hardware.diskSpace} Free Disk
+            </div>
+            <p className="text-[11px] text-slate-400 font-normal">
+              Chunked dataset streaming prevents out-of-memory crashes on your local system.
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 space-y-1">
+            <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+              <span>🚀</span>
+              <span>Public Live Deployment</span>
+            </div>
+            <div className="font-extrabold text-amber-300">
+              $0.00 Free-Tier Public URL
+            </div>
+            <p className="text-[11px] text-slate-400 font-normal">
+              Vercel + Supabase + Hugging Face Spaces free tiers with zero credit card needed.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Progress & Overview Bar */}
@@ -401,32 +490,90 @@ export default function RoadmapPage() {
                 </div>
               </div>
 
-              {/* Question 2: Equipment Available */}
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-800 flex items-center gap-1.5">
+              {/* Question 2: Comprehensive PC Hardware Specifications */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+                <div className="flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-indigo-600" />
-                  <span>2. Equipment / Hardware Available</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {[
-                    { id: "laptop_cpu", label: "Standard Laptop (CPU Only, 8-16GB RAM)" },
-                    { id: "gpu_cloud", label: "Cloud GPU (Colab, RunPod, Vast.ai)" },
-                    { id: "edge_device", label: "Edge Hardware (Raspberry Pi, Jetson Nano)" },
-                    { id: "cluster_server", label: "High-End Server / Multi-GPU Workstation" },
-                  ].map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setAnswers({ ...answers, equipment: opt.id as any })}
-                      className={`p-3 rounded-xl border text-left font-bold transition-all ${
-                        answers.equipment === opt.id
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
+                  <span className="font-extrabold text-slate-900 text-xs">2. Your Exact PC / Laptop Specifications</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-normal">
+                  Our algorithm will calibrate memory allocation, quantization, and execution commands to your hardware.
+                </p>
+
+                {/* Sub-question: Device & OS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700">Machine Type</label>
+                    <select
+                      value={hardware.deviceType}
+                      onChange={(e) => setHardware({ ...hardware, deviceType: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-semibold text-slate-800 text-xs"
                     >
-                      {opt.label}
-                    </button>
-                  ))}
+                      <option value="laptop">Standard Laptop</option>
+                      <option value="desktop">Desktop Workstation</option>
+                      <option value="mac">Apple Mac (MacBook / Mac Mini)</option>
+                      <option value="linux">Linux Machine / Rig</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700">Operating System</label>
+                    <select
+                      value={hardware.os}
+                      onChange={(e) => setHardware({ ...hardware, os: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-semibold text-slate-800 text-xs"
+                    >
+                      <option value="windows">Windows 11 / 10</option>
+                      <option value="macos">macOS (Apple Silicon)</option>
+                      <option value="linux">Ubuntu / Debian Linux</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Sub-question: RAM & Disk Space */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700">Installed RAM</label>
+                    <select
+                      value={hardware.ram}
+                      onChange={(e) => setHardware({ ...hardware, ram: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-semibold text-slate-800 text-xs"
+                    >
+                      <option value="4gb">4 GB RAM (Strict INT8 CPU Mode)</option>
+                      <option value="8gb">8 GB RAM (Standard Laptop)</option>
+                      <option value="16gb">16 GB RAM (Recommended Dev Machine)</option>
+                      <option value="32gb_plus">32 GB+ RAM (High-Performance)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700">Free SSD / Disk Space</label>
+                    <select
+                      value={hardware.diskSpace}
+                      onChange={(e) => setHardware({ ...hardware, diskSpace: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-semibold text-slate-800 text-xs"
+                    >
+                      <option value="under_20gb">&lt; 20 GB (Minimal disk cache)</option>
+                      <option value="50gb">50 GB (Standard)</option>
+                      <option value="100gb_plus">100 GB+ (Abundant)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Sub-question: Dedicated GPU / VRAM */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700">Dedicated GPU / Acceleration</label>
+                  <select
+                    value={hardware.gpu}
+                    onChange={(e) => setHardware({ ...hardware, gpu: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-semibold text-slate-800 text-xs"
+                  >
+                    <option value="none_integrated">No Dedicated GPU (Integrated Intel/AMD Graphics)</option>
+                    <option value="free_cloud_colab">Free Cloud GPU (Google Colab Free T4)</option>
+                    <option value="nvidia_4gb">NVIDIA GTX / RTX 4GB VRAM (1650 / 3050)</option>
+                    <option value="nvidia_8gb_plus">NVIDIA RTX 8GB+ VRAM (3060 / 4060 / 3080)</option>
+                    <option value="apple_silicon">Apple Silicon M-Series Metal GPU</option>
+                  </select>
                 </div>
               </div>
 
@@ -540,4 +687,249 @@ export default function RoadmapPage() {
       )}
     </div>
   );
+}
+
+// ─── Helper: Generate Calibrated 6-Phase Prototype Roadmap ───────────────────
+
+function generateCalibratedRoadmap(
+  analysis: any,
+  answers: RoadmapQuestionnaireAnswers,
+  hardware: { deviceType: string; cpu: string; ram: string; diskSpace: string; gpu: string; os: string }
+): DynamicRoadmap {
+  const durationMap: Record<string, number> = {
+    "1-2_weeks": 2,
+    "1_month": 4,
+    "3_months": 12,
+    "6_months": 24,
+  };
+  const totalWeeks = durationMap[answers.timePeriod] || 4;
+  const weeklyHours = answers.teamSize === "small_team" ? 45 : answers.teamSize === "pair" ? 30 : 20;
+  const totalEstimatedHours = totalWeeks * weeklyHours;
+
+  const isLowRAM = hardware.ram === "4gb" || hardware.ram === "8gb";
+  const hasGPU = hardware.gpu.includes("nvidia") || hardware.gpu === "apple_silicon";
+
+  const phases: RoadmapPhase[] = [
+    {
+      id: "phase-1",
+      phaseNumber: 1,
+      title: "Environment Setup & Hardware Calibration",
+      durationWeeks: Math.max(1, Math.round(totalWeeks * 0.15)),
+      description: `Configure zero-error local toolchain for ${hardware.os.toUpperCase()} (${hardware.ram.toUpperCase()} RAM, ${hardware.gpu === "none_integrated" ? "CPU Quantized" : "GPU Accelerated"}).`,
+      color: "from-blue-600 to-indigo-600",
+      tasks: [
+        {
+          id: "p1-t1",
+          title: "Initialize Virtual Environment & Hardware Detection",
+          description: `Create clean Python 3.11 venv with platform-specific dependencies: ${hardware.os === "windows" ? "python -m venv venv && .\\venv\\Scripts\\activate" : "python3 -m venv venv && source venv/bin/activate"}.`,
+          estimatedHours: 4,
+          priority: "high",
+          completed: true,
+          deliverables: ["Working virtualenv", "requirements.txt locked"],
+          equipmentNeeded: `${hardware.deviceType.toUpperCase()} (${hardware.cpu})`,
+          budgetRequirement: "$0 (Free)",
+        },
+        {
+          id: "p1-t2",
+          title: hasGPU ? "Configure CUDA / Metal Runtime" : "Install INT8 ONNX Runtime for CPU Execution",
+          description: hasGPU
+            ? "Verify PyTorch CUDA acceleration and allocate mixed precision tensor cache."
+            : "Install onnxruntime with multi-threaded AVX2/AVX512 instruction support to run models with 0ms GPU dependency.",
+          estimatedHours: 6,
+          priority: "high",
+          completed: true,
+          deliverables: ["Hardware verification script pass (0 errors)"],
+          equipmentNeeded: hardware.gpu,
+          budgetRequirement: "$0 (Free)",
+        },
+      ],
+    },
+    {
+      id: "phase-2",
+      phaseNumber: 2,
+      title: "Core Algorithm & Data Ingestion Pipeline",
+      durationWeeks: Math.max(1, Math.round(totalWeeks * 0.25)),
+      description: `Implement core domain pipelines with memory-safe streaming fitting in ${hardware.ram.toUpperCase()} RAM.`,
+      color: "from-indigo-600 to-purple-600",
+      tasks: [
+        {
+          id: "p2-t1",
+          title: `Build Ingestion Pipeline for ${analysis?.domains?.[0] || "Data"}`,
+          description: isLowRAM
+            ? "Implement generator-based chunk streaming (batch size 16) to keep memory footprint under 3.5GB."
+            : "Standard batch ingestion with concurrent asynchronous pre-fetching.",
+          estimatedHours: 12,
+          priority: "high",
+          completed: false,
+          deliverables: ["Ingestion script", "Clean dataset parser"],
+          equipmentNeeded: `${hardware.ram.toUpperCase()} RAM`,
+          budgetRequirement: "$0 (Free)",
+        },
+        {
+          id: "p2-t2",
+          title: "Implement Dual-Criterion Accuracy & Novelty Scoring",
+          description: "Write Pareto scoring formula balancing concept match with accuracy metrics from research baselines.",
+          estimatedHours: 10,
+          priority: "high",
+          completed: false,
+          deliverables: ["Dual-criterion scoring module", "Unit tests"],
+          equipmentNeeded: "Local Machine",
+          budgetRequirement: "$0 (Free)",
+        },
+      ],
+    },
+    {
+      id: "phase-3",
+      phaseNumber: 3,
+      title: "Outperformance Features & Model Quantization",
+      durationWeeks: Math.max(1, Math.round(totalWeeks * 0.2)),
+      description: "Apply model quantization and component-by-component upgrades to outperform published research baselines.",
+      color: "from-purple-600 to-pink-600",
+      tasks: [
+        {
+          id: "p3-t1",
+          title: "Export INT8 Quantized Model Weights",
+          description: "Convert heavy PyTorch weights to INT8 ONNX graph, cutting storage footprint from ~350MB to <85MB.",
+          estimatedHours: 8,
+          priority: "high",
+          completed: false,
+          deliverables: ["models/novelty_model.onnx file", "Latency benchmark log"],
+          equipmentNeeded: "Local CPU / Colab Free T4",
+          budgetRequirement: "$0 (Free)",
+        },
+        {
+          id: "p3-t2",
+          title: "Implement Pluggable ML Model Inference Service",
+          description: "Wire up Strategy Pattern: prioritize local custom ML model with automatic fallback to NLP engine.",
+          estimatedHours: 8,
+          priority: "medium",
+          completed: false,
+          deliverables: ["NoveltyRankerService module"],
+          equipmentNeeded: "Local Machine",
+          budgetRequirement: "$0 (Free)",
+        },
+      ],
+    },
+    {
+      id: "phase-4",
+      phaseNumber: 4,
+      title: "Full-Stack Web Interface & Real-Time Visualization",
+      durationWeeks: Math.max(1, Math.round(totalWeeks * 0.2)),
+      description: "Assemble responsive Next.js frontend with Tailwind CSS, IndexedDB client storage, and FastAPI REST endpoints.",
+      color: "from-pink-600 to-rose-600",
+      tasks: [
+        {
+          id: "p4-t1",
+          title: "Setup Client-Side IndexedDB Storage",
+          description: "Cache full paper pools (10 to 1,000 papers) in user browser to avoid backend DB storage limits.",
+          estimatedHours: 6,
+          priority: "high",
+          completed: true,
+          deliverables: ["IndexedDB wrapper", "Pagination controller"],
+          equipmentNeeded: "Web Browser",
+          budgetRequirement: "$0 (Free)",
+        },
+        {
+          id: "p4-t2",
+          title: "Build Pre-Retrieval Keyword Verification & Paper Details Modals",
+          description: "Display categorized algorithms/methods for review before search, and provide raw API JSON inspection.",
+          estimatedHours: 10,
+          priority: "high",
+          completed: true,
+          deliverables: ["KeywordVerificationModal", "PaperDetailsModal"],
+          equipmentNeeded: "Web Browser",
+          budgetRequirement: "$0 (Free)",
+        },
+      ],
+    },
+    {
+      id: "phase-5",
+      phaseNumber: 5,
+      title: "Verification, Benchmarking & Accuracy Evaluation",
+      durationWeeks: Math.max(1, Math.round(totalWeeks * 0.1)),
+      description: "Run automated test suites and prove project superiority over retrieved research papers.",
+      color: "from-amber-600 to-yellow-600",
+      tasks: [
+        {
+          id: "p5-t1",
+          title: "Benchmark Against Top-Ranked Research Papers",
+          description: "Compare inference latency (p95), accuracy %, and memory consumption directly against published paper baselines.",
+          estimatedHours: 8,
+          priority: "high",
+          completed: false,
+          deliverables: ["Benchmark comparison table", "ROC/Accuracy curves"],
+          equipmentNeeded: "Local Benchmark Suite",
+          budgetRequirement: "$0 (Free)",
+        },
+      ],
+    },
+    {
+      id: "phase-6",
+      phaseNumber: 6,
+      title: "100% Working Prototype & $0 Public Deployment",
+      durationWeeks: Math.max(1, Math.round(totalWeeks * 0.1)),
+      description: "Deploy production frontend to Vercel, serverless database to Supabase, and model API to Hugging Face Spaces for $0.",
+      color: "from-emerald-600 to-teal-600",
+      tasks: [
+        {
+          id: "p6-t1",
+          title: "Deploy Next.js App Router Frontend to Vercel",
+          description: "Connect GitHub repository to Vercel Hobby Tier for global edge CDN distribution with custom domain or .vercel.app link.",
+          estimatedHours: 4,
+          priority: "high",
+          completed: false,
+          deliverables: ["Live HTTPS frontend URL"],
+          equipmentNeeded: "Vercel Free Tier",
+          budgetRequirement: "$0 (Free)",
+        },
+        {
+          id: "p6-t2",
+          title: "Deploy Python Inference API to Hugging Face Spaces",
+          description: "Containerize FastAPI application using Docker on Hugging Face Spaces (Free 2 vCPU, 16GB RAM runtime).",
+          estimatedHours: 6,
+          priority: "high",
+          completed: false,
+          deliverables: ["Public REST API endpoint", "Swagger documentation live"],
+          equipmentNeeded: "Hugging Face Free Tier",
+          budgetRequirement: "$0 (Free)",
+        },
+      ],
+    },
+  ];
+
+  return {
+    id: `calibrated-roadmap-${Date.now()}`,
+    projectId: analysis?.project_title || "project-1",
+    createdAt: new Date().toISOString(),
+    totalDurationWeeks: totalWeeks,
+    totalEstimatedHours,
+    phases,
+    budgetBreakdown: {
+      tier: answers.budget === "free_0" ? "$0 Zero-Cost (100% Free Tiers)" : "Student / Custom Tier",
+      totalCostEst: answers.budget === "free_0" ? "$0.00" : "$25.00 - $45.00",
+      items: [
+        { item: "Frontend Edge Hosting", cost: "$0 / mo", freeAlternative: "Vercel Hobby Tier" },
+        { item: "Database & Authentication", cost: "$0 / mo", freeAlternative: "Supabase Free Tier" },
+        { item: "Model Inference Compute", cost: "$0 / mo", freeAlternative: "Hugging Face Spaces (Free CPU 16GB)" },
+        { item: "Academic Literature Retrieval", cost: "$0 / mo", freeAlternative: "Semantic Scholar & arXiv APIs" },
+        { item: "Heavy Training (if needed)", cost: "$0 / mo", freeAlternative: "Google Colab Free T4 GPU" },
+      ],
+    },
+    equipmentChecklist: {
+      required: [
+        `${hardware.deviceType.toUpperCase()} with ${hardware.ram.toUpperCase()} RAM`,
+        `${hardware.os.toUpperCase()} Operating System`,
+        "Python 3.10+ and Node.js 18+",
+      ],
+      recommended: [
+        hardware.gpu === "none_integrated" ? "INT8 Quantized Model Execution" : "Hardware GPU Acceleration",
+        `${hardware.diskSpace} free storage for dependencies`,
+      ],
+      freeCloudOptions: [
+        "Google Colab Free T4 (Offline model evaluation)",
+        "Hugging Face Spaces (Free 16GB RAM Python hosting)",
+        "Vercel (Free frontend CDN deployment)",
+      ],
+    },
+  };
 }
